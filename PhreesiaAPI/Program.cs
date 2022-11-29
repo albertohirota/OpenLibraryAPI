@@ -28,11 +28,12 @@ namespace PhreesiaAPI
             var newBooksSearchedJson = GetJsonFromTheSearch(LookingForSpecificBook);
             newBooksSearchedJson.Wait();
             var jsonTarget = ReadJson(filePath);
-            var differenceResult = CompareJson(jsonTarget, newBooksSearchedJson.Result);
+            var differenceInTheResult = CompareJson(jsonTarget, newBooksSearchedJson.Result);
 
-            Console.WriteLine("\n ----------Results for test 3.2-----------");
-            Console.WriteLine("Shows differences with \"*\" for changed properties \"-\" and \"+\" for removed and added ones respectively");
-            Console.WriteLine(differenceResult.ToString());
+            Console.WriteLine("\n --------------Results for test 3.2--------------");
+            Console.WriteLine("Results doesn't match.");
+            Console.WriteLine("Showing the differences with \"*\" for changed properties \"-\" and \"+\" for removed and added ones respectively");
+            Console.WriteLine(differenceInTheResult.ToString());
 
             Console.ReadLine();
         }
