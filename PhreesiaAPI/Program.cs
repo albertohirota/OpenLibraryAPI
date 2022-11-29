@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -20,8 +21,20 @@ namespace PhreesiaAPI
 
             var booksSearchedJson = GetJsonFromTheSearch(LookingForBook);
             booksSearchedJson.Wait();
-            int totalBooksFound = GetTotalBooks(booksSearchedJson);
-            Console.WriteLine("Total books found: "+ totalBooksFound.ToString());
+            
+            var booksFound = GetTotalBooks(booksSearchedJson, LookingForBook, 2000);
+            foreach (KeyValuePair<int, List<string>> kvp in booksFound)
+            {
+                Console.WriteLine("----------Results for test 3.1.1 and 3.1.2-----------");
+                Console.WriteLine("Total books found: " + kvp.Key.ToString());
+                Console.WriteLine("Keys' list: " + String.Join(", ", kvp.Value));
+            }
+
+            string LookingForSpecificBook = "[Goodnight Moon 123 Lap Edition]";
+
+            var newBooksSearchedJson = GetJsonFromTheSearch(LookingForSpecificBook);
+            newBooksSearchedJson.Wait();
+            Console.WriteLine(newBooksSearchedJson);
 
             Console.ReadLine();
         }
@@ -42,90 +55,122 @@ namespace PhreesiaAPI
             return httpResponse;
         } 
 
-        private static int GetTotalBooks(Task<string> result)
+        private static Dictionary<int,List<string>> GetTotalBooks(Task<string> json, string bookName, int year)
         {
-            Debug.WriteLine(result);
-            Results? total = JsonConvert.DeserializeObject<Results>(result.Result);
-            
-            return total!.TotalBooks;
+            List<string> keys = new();
+            int numberOfBooks = 0;
+            Dictionary<int, List<string>> result = new();
+            var books = JsonConvert.DeserializeObject<Results>(json.Result);
+
+            foreach (var book in books!.Books!)
+            {
+                if (book.Title!.Contains(bookName))
+                {
+                    numberOfBooks++;
+                    if(publishedAfterYear(year, book.PublishYear!))
+                        keys.Add(book.BookKey!);
+                }   
+            }
+            result.Add(numberOfBooks,keys);
+  
+            return result;
         }
 
+        private static bool publishedAfterYear(int year, List<int> publish)
+        {
+            bool published = false;
+            if (publish == null)
+                return published;
+
+            foreach (var yearPublished in publish)
+            {
+                if(yearPublished >= year)
+                {
+                    published = true;
+                    break;
+                }
+            }
+            return published;
+        }
     }
 
     class Results
     {
         [JsonProperty("numFound")]
-        public int TotalBooks { get; set; }
-        public int start { get; set; }
-        public bool numFoundExact { get; set; }
+        public int? TotalBooks { get; set; }
+        public int? start { get; set; }
+        public bool? numFoundExact { get; set; }
         [JsonProperty("docs")]
-        public List<Doc> Books { get; set; }
-        public int num_found { get; set; }
-        public string q { get; set; }
-        public object offset { get; set; }
+        public List<BooksList>? Books { get; set; }
+        public int? num_found { get; set; }
+        public string? q { get; set; }
+        public object? offset { get; set; }
     }
 
-    public class Doc
+    public class BooksList
     {
-        public string key { get; set; }
-        public string type { get; set; }
-        public List<string> seed { get; set; }
-        public string title { get; set; }
-        public string title_suggest { get; set; }
-        public int edition_count { get; set; }
-        public List<string> edition_key { get; set; }
-        public List<string> publish_date { get; set; }
-        public List<int> publish_year { get; set; }
-        public int first_publish_year { get; set; }
-        public int number_of_pages_median { get; set; }
-        public List<string> lccn { get; set; }
-        public List<string> publish_place { get; set; }
-        public List<string> oclc { get; set; }
-        public List<string> contributor { get; set; }
-        public List<string> lcc { get; set; }
-        public List<string> ddc { get; set; }
-        public List<string> isbn { get; set; }
-        public int last_modified_i { get; set; }
-        public int ebook_count_i { get; set; }
-        public string ebook_access { get; set; }
-        public bool has_fulltext { get; set; }
-        public bool public_scan_b { get; set; }
-        public List<string> ia { get; set; }
-        public List<string> ia_collection { get; set; }
-        public string ia_collection_s { get; set; }
-        public string lending_edition_s { get; set; }
-        public string lending_identifier_s { get; set; }
-        public string printdisabled_s { get; set; }
-        public string cover_edition_key { get; set; }
-        public int cover_i { get; set; }
-        public List<string> first_sentence { get; set; }
-        public List<string> publisher { get; set; }
-        public List<string> language { get; set; }
-        public List<string> author_key { get; set; }
-        public List<string> author_name { get; set; }
-        public List<string> author_alternative_name { get; set; }
-        public List<string> place { get; set; }
-        public List<string> subject { get; set; }
-        public List<string> id_goodreads { get; set; }
-        public List<string> id_librarything { get; set; }
-        public List<string> ia_loaded_id { get; set; }
-        public List<string> ia_box_id { get; set; }
-        public List<string> publisher_facet { get; set; }
-        public List<string> place_key { get; set; }
-        public List<string> subject_facet { get; set; }
-        public object _version_ { get; set; }
-        public List<string> place_facet { get; set; }
-        public string lcc_sort { get; set; }
-        public List<string> author_facet { get; set; }
-        public List<string> subject_key { get; set; }
-        public string ddc_sort { get; set; }
-        public List<string> id_amazon { get; set; }
-        public string subtitle { get; set; }
-        public List<string> person { get; set; }
-        public List<string> time { get; set; }
-        public List<string> person_key { get; set; }
-        public List<string> time_facet { get; set; }
-        public List<string> person_facet { get; set; }
-        public List<string> time_key { get; set; }
+        [JsonProperty("key")]
+        public string? BookKey { get; set; }
+        public string? type { get; set; }
+        public List<string>? seed { get; set; }
+        [JsonProperty("title")]
+        public string? Title { get; set; }
+        public string? title_suggest { get; set; }
+        public int? edition_count { get; set; }
+        public List<string>?edition_key { get; set; }
+        public List<string>? publish_date { get; set; }
+        [JsonProperty("publish_year")]
+        public List<int>? PublishYear { get; set; }
+        public int? first_publish_year { get; set; }
+        public int? number_of_pages_median { get; set; }
+        public List<string>? lccn { get; set; }
+        public List<string>? publish_place { get; set; }
+        public List<string>? oclc { get; set; }
+        public List<string>? contributor { get; set; }
+        public List<string>? lcc { get; set; }
+        public List<string>? ddc { get; set; }
+        public List<string>? isbn { get; set; }
+        public int? last_modified_i { get; set; }
+        public int? ebook_count_i { get; set; }
+        public string? ebook_access { get; set; }
+        public bool? has_fulltext { get; set; }
+        public bool? public_scan_b { get; set; }
+        public List<string>? ia { get; set; }
+        public List<string>? ia_collection { get; set; }
+        public string? ia_collection_s { get; set; }
+        public string? lending_edition_s { get; set; }
+        public string? lending_identifier_s { get; set; }
+        public string? printdisabled_s { get; set; }
+        public string? cover_edition_key { get; set; }
+        public int? cover_i { get; set; }
+        public List<string>? first_sentence { get; set; }
+        public List<string>? publisher { get; set; }
+        public List<string>? language { get; set; }
+        public List<string>? author_key { get; set; }
+        public List<string>? author_name { get; set; }
+        public List<string>? author_alternative_name { get; set; }
+        public List<string>? place { get; set; }
+        public List<string>? subject { get; set; }
+        public List<string>? id_goodreads { get; set; }
+        public List<string>? id_librarything { get; set; }
+        public List<string>? ia_loaded_id { get; set; }
+        public List<string>? ia_box_id { get; set; }
+        public List<string>? publisher_facet { get; set; }
+        public List<string>? place_key { get; set; }
+        public List<string>? subject_facet { get; set; }
+        public object? _version_ { get; set; }
+        public List<string>? place_facet { get; set; }
+        public string? lcc_sort { get; set; }
+        public List<string>? author_facet { get; set; }
+        public List<string>? subject_key { get; set; }
+        public string? ddc_sort { get; set; }
+        public List<string>? id_amazon { get; set; }
+        public string? subtitle { get; set; }
+        public List<string>? person { get; set; }
+        public List<string>? time { get; set; }
+        public List<string>? person_key { get; set; }
+        public List<string>? time_facet { get; set; }
+        public List<string>? person_facet { get; set; }
+        public List<string>? time_key { get; set; }
     }
 }
